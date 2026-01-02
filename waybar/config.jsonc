@@ -45,9 +45,13 @@
       // "default": "",
       // "active": "",
       // "empty": ""
-      "active": "",
-      "focused": "",
-      "default": ""
+      // "active": "",
+      // "active": "",
+      // "focused": "",
+      // "default": ""
+      "active": "",
+      "focused": "",
+      "default": ""
     },
     "persistent-workspaces": {
       "*": [1, 2, 3, 4, 5]
@@ -169,7 +173,8 @@
     "headphone-icon": "",
     "format-icons": {
       "default": ["", "", ""]
-    }
+    },
+    "pulseaudio/slider": { "min": 0, "max": 100, "orientation": "horizontal" }
   },
   "group/hardware": {
     "orientation": "horizontal",
@@ -185,7 +190,7 @@
       "transition-duration": 300,
       "children-class": "audio-slider"
     },
-    "modules": ["pulseaudio", "custom/volume-slider"]
+    "modules": ["pulseaudio", "pulseaudio/slider"]
   },
   "custom/volume-slider": {
     "exec": "pamixer --get-volume",
