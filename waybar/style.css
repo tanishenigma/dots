@@ -60,7 +60,7 @@ window#waybar {
   border: 0px;
 }
 #workspaces button:not(.active) {
-  opacity: 0.25;
+  opacity: 0.7;
 }
 #workspaces button.focused {
   min-width: 50px;
@@ -78,6 +78,11 @@ window#waybar {
 
 #workspaces button.urgent {
   background: #ff0000;
+  border: 1px solid #ff0000;
+}
+#workspaces button.empty {
+  opacity: 0.25;
+  font-size: 8px;
 }
 
 /* #workspaces button {
@@ -124,9 +129,37 @@ window#waybar {
   min-width: 12px;
   margin: 0 7.5px;
 }
-#audio-slider {
-  margin: 20px;
-  background-color: #ff0000;
+
+#pulseaudio-slider {
+  padding: 0;
+  margin: 8px 0;
+}
+
+/* knob */
+#pulseaudio-slider slider {
+  all: unset;
+
+  min-width: 5px;
+  min-height: 5px;
+  border-radius: 999px;
+  background-color: alpha(@foreground, 0.5); /* knob color */
+  margin-top: -4px;
+  margin-bottom: -4px;
+}
+
+/* background bar */
+#pulseaudio-slider trough {
+  min-height: 6px;
+  min-width: 100px;
+  border-radius: 999px;
+  background-color: alpha(@foreground, 0.15);
+}
+
+/* filled part */
+#pulseaudio-slider highlight {
+  min-height: 8px;
+  border-radius: 999px;
+  background-color: @foreground; /* filled volume */
 }
 
 #cpu {
@@ -217,4 +250,30 @@ tooltip {
   margin: 0;
   padding: 0;
   min-width: 0;
+}
+
+#backlight-slider slider {
+  all: unset;
+  min-width: 5px;
+  min-height: 5px;
+  border-radius: 999px;
+  background-color: alpha(@foreground, 0.5);
+  margin-top: -4px;
+  margin-bottom: -4px;
+  box-shadow: none; /* specific fix for backlight slider sometimes having a default shadow */
+}
+
+/* background bar */
+#backlight-slider trough {
+  min-height: 6px;
+  min-width: 100px;
+  border-radius: 999px;
+  background-color: alpha(@foreground, 0.15);
+}
+
+/* filled part */
+#backlight-slider highlight {
+  min-height: 8px;
+  border-radius: 999px;
+  background-color: @foreground;
 }

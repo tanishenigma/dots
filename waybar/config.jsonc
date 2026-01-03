@@ -108,8 +108,8 @@
     "return-type": "text"
   },
   "custom/spotify": {
-    "exec": "sh -lc \"playerctl -p spotify metadata --format '  {{ artist }} - {{ title }}' 2>/dev/null || echo ''\"",
-
+    "exec": "playerctl -p spotify metadata --format '{{ status }} {{ artist }} - {{ title }}' 2>/dev/null | sed -e 's/Playing/ /' -e 's/Paused/ /'",
+    "tooltip": false,
     "format": "{}",
     "return-type": "text",
     "interval": 1,
@@ -149,11 +149,19 @@
   },
   "backlight": {
     "format": "{icon} ",
+    "tooltip-format": false,
     "format-icons": ["󰃞", "󰃟", "󰃠"],
     "on-scroll-up": "brightnessctl set +5% ",
     "on-scroll-down": "brightnessctl set 5%- ",
-    "on-click": "~/.config/waybar/scripts/toggle-brightness.sh"
+    "on-click": "~/.config/waybar/scripts/toggle-brightness.sh",
+    "backlight/slider": {
+      "min": 0,
+      "max": 100,
+      "orientation": "horizontal",
+      "device": "intel_backlight"
+    }
   },
+
   "bluetooth": {
     "format": "",
     "format-disabled": "󰂲",
@@ -167,7 +175,7 @@
     "on-click": "omarchy-launch-or-focus-tui wiremix",
     // "on-click": "group:expand/audio",
     "on-click-right": "pamixer -t",
-    // "tooltip-format": "{volume}%",
+    "tooltip-format": "{volume}%",
     "scroll-step": 1,
     "format-muted": "",
     "headphone-icon": "",
@@ -182,15 +190,24 @@
   },
   "group/power-stats": {
     "orientation": "horizontal",
-    "modules": ["backlight", "group/audio", "battery"]
+    "modules": ["group/backlight", "group/audio", "battery"]
   },
   "group/audio": {
     "orientation": "horizontal",
     "drawer": {
-      "transition-duration": 300,
+      "transition-duration": 200,
       "children-class": "audio-slider"
     },
     "modules": ["pulseaudio", "pulseaudio/slider"]
+  },
+
+  "group/backlight": {
+    "orientation": "horizontal",
+    "drawer": {
+      "transition-duration": 200,
+      "children-class": "backlight-slider"
+    },
+    "modules": ["backlight", "backlight/slider"]
   },
   "custom/volume-slider": {
     "exec": "pamixer --get-volume",
