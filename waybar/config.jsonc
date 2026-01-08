@@ -18,6 +18,7 @@
     "custom/screenrecording-indicator"
   ],
   "modules-right": [
+    "custom/todo",
     "group/hardware",
     // "bluetooth",
     // "network",
@@ -77,7 +78,7 @@
   "custom/update": {
     "format": "",
     "exec": "omarchy-update-available",
-    "on-click": "omarchy-launch-floating-terminal-with-presentation omarchy-update",
+    "on-click": "hyprctl dispatch exec \"[float;size 60% 60%;center] xdg-terminal-exec omarchy-update\"",
     "tooltip-format": "Omarchy update available",
     "signal": 7,
     "interval": 3600
@@ -93,7 +94,7 @@
     "format-alt": "{:L%d %B W%V %Y}",
     "tooltip": true,
     "tooltip-format": "{calendar}",
-    "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
+    "on-click-right": "hyprctl dispatch exec \"[float;size 60% 60%;center] xdg-terminal-exec omarchy-tz-select\""
   },
   "custom/weather": {
     "format": "• {}",
@@ -114,6 +115,16 @@
     "return-type": "text",
     "interval": 1,
     "on-click": "playerctl play-pause --player=spotify"
+  },
+  "custom/todo": {
+    "exec": "$HOME/.config/waybar/scripts/todo.py",
+    "return-type": "json",
+    "interval": 20,
+    "signal": 13,
+    "on-click": "$HOME/.config/waybar/scripts/todo.py toggle-current --signal 13",
+    "on-click-right": "hyprctl dispatch exec \"[float;size 60% 60%;center] xdg-terminal-exec $HOME/.config/waybar/scripts/todo.py tui --signal 13\"",
+    "on-click-middle": "$HOME/.config/waybar/scripts/todo.py reset --signal 13",
+    "tooltip": true
   },
   "network": {
     "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],

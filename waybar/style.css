@@ -130,6 +130,12 @@ window#waybar {
   margin: 0 7.5px;
 }
 
+#custom-todo {
+  background-color: alpha(@background, 1);
+  padding-left: 10px;
+  padding-right: 10px;
+  margin: 0 7.5px;
+}
 #pulseaudio-slider {
   padding: 0;
   margin: 8px 0;
