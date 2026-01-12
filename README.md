@@ -9,7 +9,7 @@ Configuration files for my Arch Linux (Omarchy) setup, including Hyprland and re
 Clone the repository to your home folder.
 
 ```bash
-git clone [https://github.com/tanishenigma/dots](https://github.com/tanishenigma/dots)
+git clone https://github.com/tanishenigma/dots
 ```
 
 ### 2. Run the installation script
