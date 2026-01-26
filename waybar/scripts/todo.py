@@ -319,8 +319,10 @@ def tui_loop(stdscr: Any, state: Dict[str, Any]) -> bool:
         height, width = stdscr.getmaxyx()
         
         # Header
-        header = "Todo Manager"
-        stdscr.addstr(0, 0, header, curses.A_BOLD | curses.A_UNDERLINE)
+        header = "Todo List"
+        header_x = (width - len(header)) // 2
+        header_x = max(0, header_x)
+        stdscr.addstr(0, header_x, header, curses.A_BOLD | curses.A_UNDERLINE)
 
         # Footer / Controls
         footer = "[A] Add  [E] Edit  [Space] Toggle  [D] Trash  [C] Clear Done  [Q] Quit"
