@@ -96,13 +96,13 @@
     "tooltip-format": "{calendar}",
     "on-click-right": "hyprctl dispatch exec \"[float;size 60% 60%;center] xdg-terminal-exec omarchy-tz-select\""
   },
-  "custom/weather": {
-    "format": "• {}",
-    "tooltip": true,
-    "interval": 1800,
-    "exec": "$HOME/.config/waybar/scripts/wttr.py",
-    "return-type": "json"
-  },
+  // "custom/weather": {
+  //   "format": "• {}",
+  //   "tooltip": true,
+  //   "interval": 1800,
+  //   "exec": "$HOME/.config/waybar/scripts/wttr.py",
+  //   "return-type": "json"
+  // },
   "custom/cava": {
     "format": "{}",
     "exec": "/home/feather/.config/waybar/scripts/cava.sh||echo \"\"",
@@ -114,7 +114,8 @@
     "format": "{}",
     "return-type": "text",
     "interval": 1,
-    "on-click": "playerctl play-pause --player=spotify"
+    "on-click": "sh -c 'python3 \"$HOME/.config/waybar/scripts/mediaplayer.py\" click --player spotify >/dev/null 2>&1 &'",
+    "on-click-right": "sh -c 'python3 \"$HOME/.config/waybar/scripts/mediaplayer.py\" right-click --player spotify >/dev/null 2>&1 &'"
   },
   "custom/todo": {
     "exec": "$HOME/.config/waybar/scripts/todo.py",
@@ -141,11 +142,11 @@
   },
   "battery": {
     "format": "{capacity}% {icon}",
-    "format-discharging": " {capacity}% {icon}",
-    "format-charging": "{capacity}% {icon}",
+    "format-discharging": " {capacity}% {icon} ",
+    "format-charging": "{capacity}% {icon} ",
     "format-plugged": "{capacity}%    ",
     "format-icons": {
-      "charging": [" 󱐌", " 󱐌", " 󱐌", " 󱐌", " 󱐋 "],
+      "charging": [" 󱐌", " 󱐌", " 󱐌", " 󱐌 ", " 󱐋 "],
       "default": ["  ", "  ", "  ", "  ", "   "]
     },
     "format-full": " 󱐋 ",
@@ -153,6 +154,7 @@
     // "tooltip-format-charging": "{power:>1.0f}W↑ {capacity}%",
     "interval": 5,
     // "on-click": "omarchy-menu power",
+    "on-click-right": "notify-send -u low \"$(omarchy-battery-status)\"",
     "states": {
       "warning": 20,
       "critical": 10
@@ -260,7 +262,7 @@
     "tooltip": true
   },
   "custom/screenrecording-indicator": {
-    "on-click": "omarchy-cmd-screenrecord",
+    "on-click": "omarchy-capture-screenrecording",
     "exec": "$OMARCHY_PATH/default/waybar/indicators/screen-recording.sh",
     "signal": 8,
     "return-type": "json"
