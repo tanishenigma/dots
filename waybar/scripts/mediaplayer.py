@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import fcntl
+
 import gi
 
 gi.require_version("Playerctl", "2.0")
@@ -6,9 +8,14 @@ import argparse
 import json
 import logging
 import os
+import re
 import signal
+import subprocess
 import sys
-from typing import List
+import time
+import uuid
+from pathlib import Path
+from typing import List, Optional
 
 import gi
 from gi.repository import GLib, Playerctl
@@ -16,12 +23,176 @@ from gi.repository.Playerctl import Player
 
 logger = logging.getLogger(__name__)
 
+CLICK_WINDOW_SECONDS = 0.35
+HIDDEN_WORKSPACE_NAME = "special:hidden"
+CLICK_STATE_PATH = Path(
+    os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "waybar-mediaplayer-clicks.json"
+
 def signal_handler(sig, frame):
     logger.info("Received signal to stop, exiting")
     sys.stdout.write("\n")
     sys.stdout.flush()
     # loop.quit()
     sys.exit(0)
+
+
+def run_quietly(command):
+    subprocess.run(
+        command,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def read_json_command(command):
+    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def read_click_state(file_handle):
+    file_handle.seek(0)
+    raw_state = file_handle.read().strip()
+    if not raw_state:
+        return {}
+
+    try:
+        return json.loads(raw_state)
+    except json.JSONDecodeError:
+        return {}
+
+
+def register_click(window_seconds: float) -> Optional[int]:
+    CLICK_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    with CLICK_STATE_PATH.open("a+", encoding="utf-8") as state_file:
+        fcntl.flock(state_file, fcntl.LOCK_EX)
+        state = read_click_state(state_file)
+        now = time.monotonic()
+        last_click = float(state.get("last_click", 0.0))
+        click_count = int(state.get("count", 0)) if now - last_click <= window_seconds else 0
+        token = uuid.uuid4().hex
+
+        state_file.seek(0)
+        state_file.truncate()
+        json.dump(
+            {
+                "count": click_count + 1,
+                "last_click": now,
+                "token": token,
+            },
+            state_file,
+        )
+        state_file.flush()
+        os.fsync(state_file.fileno())
+        fcntl.flock(state_file, fcntl.LOCK_UN)
+
+    time.sleep(window_seconds)
+
+    with CLICK_STATE_PATH.open("r+", encoding="utf-8") as state_file:
+        fcntl.flock(state_file, fcntl.LOCK_EX)
+        state = read_click_state(state_file)
+        if state.get("token") != token:
+            fcntl.flock(state_file, fcntl.LOCK_UN)
+            return None
+
+        click_count = int(state.get("count", 1))
+        state_file.seek(0)
+        state_file.truncate()
+        state_file.flush()
+        os.fsync(state_file.fileno())
+        fcntl.flock(state_file, fcntl.LOCK_UN)
+        return click_count
+
+
+def find_player_client(player_name: str):
+    clients = read_json_command(["hyprctl", "clients", "-j"])
+    if not isinstance(clients, list):
+        return None
+
+    pattern = re.compile(rf"\b{re.escape(player_name)}\b", re.IGNORECASE)
+    for client in clients:
+        if not isinstance(client, dict):
+            continue
+
+        window_class = client.get("class")
+        window_title = client.get("title")
+        if isinstance(window_class, str) and pattern.search(window_class):
+            return client
+        if isinstance(window_title, str) and pattern.search(window_title):
+            return client
+
+    return None
+
+
+def bring_player_to_current_workspace(player_name: str):
+    player_client = find_player_client(player_name)
+    player_address = player_client.get("address") if isinstance(player_client, dict) else None
+    if not player_address:
+        run_quietly(["omarchy-launch-or-focus", player_name])
+        return
+
+    active_workspace = read_json_command(["hyprctl", "activeworkspace", "-j"])
+    workspace_target = None
+    if isinstance(active_workspace, dict):
+        workspace_target = active_workspace.get("name") or active_workspace.get("id")
+
+    if workspace_target is not None:
+        run_quietly(
+            [
+                "hyprctl",
+                "dispatch",
+                "movetoworkspacesilent",
+                f"{workspace_target},address:{player_address}",
+            ]
+        )
+
+    run_quietly(["hyprctl", "dispatch", "focuswindow", f"address:{player_address}"])
+
+
+def toggle_player_hidden_workspace(player_name: str):
+    player_client = find_player_client(player_name)
+    player_address = player_client.get("address") if isinstance(player_client, dict) else None
+    if not player_address:
+        run_quietly(["omarchy-launch-or-focus", player_name])
+        return
+
+    workspace = player_client.get("workspace") if isinstance(player_client, dict) else None
+    workspace_name = workspace.get("name") if isinstance(workspace, dict) else None
+    if workspace_name == HIDDEN_WORKSPACE_NAME:
+        bring_player_to_current_workspace(player_name)
+        return
+
+    run_quietly(
+        [
+            "hyprctl",
+            "dispatch",
+            "movetoworkspacesilent",
+            f"{HIDDEN_WORKSPACE_NAME},address:{player_address}",
+        ]
+    )
+
+
+def handle_click(player_name: str, click_window: float):
+    click_count = register_click(click_window)
+    if click_count is None:
+        return
+
+    playerctl_command = ["playerctl", "--player", player_name]
+    if click_count == 1:
+        run_quietly(playerctl_command + ["play-pause"])
+    else:
+        run_quietly(playerctl_command + ["next"])
+
+
+def handle_right_click(player_name: str):
+    toggle_player_hidden_workspace(player_name)
 
 
 class PlayerManager:
@@ -160,10 +331,17 @@ def parse_arguments():
     # Increase verbosity with every occurrence of -v
     parser.add_argument("-v", "--verbose", action="count", default=0)
 
-    parser.add_argument("-x", "--exclude", "- Comma-separated list of excluded player")
+    parser.add_argument("command", nargs="?", choices=["listen", "click", "right-click"], default="listen")
+
+    parser.add_argument(
+        "-x",
+        "--exclude",
+        help="Comma-separated list of excluded player",
+    )
 
     # Define for which player we"re listening
     parser.add_argument("--player")
+    parser.add_argument("--click-window", type=float, default=CLICK_WINDOW_SECONDS)
 
     parser.add_argument("--enable-logging", action="store_true")
 
@@ -183,6 +361,13 @@ def main():
     # Logging is set by default to WARN and higher.
     # With every occurrence of -v it's lowered by one
     logger.setLevel(max((3 - arguments.verbose) * 10, 0))
+
+    if arguments.command == "click":
+        handle_click(arguments.player or "spotify", arguments.click_window)
+        return
+    if arguments.command == "right-click":
+        handle_right_click(arguments.player or "spotify")
+        return
 
     logger.info("Creating player manager")
     if arguments.player:
